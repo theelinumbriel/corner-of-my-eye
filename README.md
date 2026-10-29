@@ -45,9 +45,3 @@ With the lamp running, in another Terminal:
     printf 'ask 1 edits hello.txt' > /tmp/claude_lamp_state
     printf 'ask 3 deletes files' > /tmp/claude_lamp_state
     printf done > /tmp/claude_lamp_state
-
-## The demo (for filming)
-
-1. Double-click **Start Claude lamp**. It resets the demo files, opens Claude Code in this folder in a new Terminal window, puts the demo request on your clipboard, and starts the lamp.
-2. Click the Claude window, Cmd+V, Enter. The request (in `DEMO_PROMPT.txt`) makes Claude ask three times: create `hello.txt` (**1**), run `count.py` (**2**), `rm -rf scratch` (**3**).
-3. Approve each one. Restart the launcher for another take; it puts everything back.
