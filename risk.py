@@ -1,14 +1,8 @@
-"""risk.py — scores how much attention a Claude Code permission request deserves: 1, 2 or 3.
+"""risk.py - scores a Claude Code permission request as 1, 2, or 3.
 
-  1  glance and approve   read-only, or editing a file inside this project (undoable)
-  2  read it              runs code, installs things, fetches from the web, uses an app
-  3  stop and think       deletes, pushes, sends data out, admin rights, touches
-                          secrets or anything outside this project
-
-Claude Code runs this as a PermissionRequest hook: it reads the request (JSON) on
-stdin and writes "ask <level> <reason>" to /tmp/claude_lamp_state for lamp.py.
-It prints nothing, so it never approves or denies anything itself: you still decide.
-Deliberately simple rules you can read in one minute, not an AI judging an AI.
+Run as a PermissionRequest hook: reads the request JSON on stdin and writes
+"ask <level> <reason>" to /tmp/claude_lamp_state for lamp.py. Never approves
+or denies anything; it only sets how loudly the lamp asks.
 """
 import json
 import os

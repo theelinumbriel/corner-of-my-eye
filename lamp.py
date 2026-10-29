@@ -1,22 +1,10 @@
-"""lamp.py — the 7-segment display shows what Claude Code is doing, in the corner of your eye.
+"""lamp.py - drives the 7-segment display from Claude Code state.
 
-Claude Code's hooks (.claude/settings.json next to this file) write a line to
-/tmp/claude_lamp_state whenever Claude's state changes. This script keeps the USB
-connection to the Uno open and turns that line into light (and a tap):
-
-  working        -> spinner                     Claude is busy; ignore it
-  ask 1 <why>    -> slow-blinking 1, one tap     glance and approve
-  ask 2 <why>    -> blinking 2, double tap       read what it wants
-  ask 3 <why>    -> fast-blinking 3, long buzz   stop and think
-  done           -> "u" for 4 s, then dark       turn finished
-  idle           -> dark
-
-Every change goes into lamp_log.csv; Ctrl+C prints how long you took to answer
-at each risk level.
+Reads /tmp/claude_lamp_state and turns each line into light + a tap:
+  working, ask 1|2|3 <why>, done, idle.
 
   python3 lamp.py            light + taps
   python3 lamp.py --quiet    light only
-Test without Claude:  printf 'ask 3 deletes files' > /tmp/claude_lamp_state
 """
 import csv
 import fcntl
@@ -31,10 +19,10 @@ import serial  # noqa: E402
 STATE = "/tmp/claude_lamp_state"
 LOG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lamp_log.csv")
 BUZZ = "--quiet" not in sys.argv
-SAY = "--bg" not in sys.argv          # --bg: don't print (used by the demo)
-BLINK = {1: 0.8, 2: 0.4, 3: 0.15}     # seconds per on/off: more risk, more urgency
+SAY = "--bg" not in sys.argv
+BLINK = {1: 0.8, 2: 0.4, 3: 0.15}
 TAP = {1: "s", 2: "d", 3: "l"}
-DONE_GLYPH, DONE_S = "m1C", 4.0       # a "u"
+DONE_GLYPH, DONE_S = "m1C", 4.0
 LABEL = {1: "glance & approve", 2: "read it", 3: "STOP AND THINK"}
 
 
@@ -62,7 +50,6 @@ def read_state():
 
 
 def parse(line):
-    """'ask 3 deletes files' -> ('ask', 3, 'deletes files'); 'working' -> ('working', 0, '')."""
     parts = line.split(" ", 2)
     kind = parts[0] if parts else ""
     if kind == "ask":
@@ -87,7 +74,7 @@ def summary(waits):
 def main(waits):
     lock = open("/tmp/claude_lamp.lock", "w")
     try:
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)   # only one lamp at a time
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError:
         sys.exit("A lamp is already running in another window. Use that one (or Ctrl+C it first).")
     port = find_port()
@@ -98,7 +85,7 @@ def main(waits):
     say(f"Connected to {port}. Waiting for the Uno to restart...")
     time.sleep(2.5)
     send = lambda c: ser.write(c.encode())  # noqa: E731
-    send("t"); time.sleep(1.2); send("x")      # short spin = "lamp is on"
+    send("t"); time.sleep(1.2); send("x")
 
     new_log = not os.path.exists(LOG)
     logf = open(LOG, "a", newline="")
@@ -106,7 +93,7 @@ def main(waits):
     if new_log:
         log.writerow(["time", "state", "risk", "reason", "seconds_in_previous_state"])
 
-    last_mtime, _ = read_state()               # ignore whatever an old session left behind
+    last_mtime, _ = read_state()
     state, level, since = "idle", 0, time.time()
     blink_on, next_blink, done_until = False, 0.0, 0.0
     say("Lamp on. Ctrl+C to stop.\n")
@@ -148,7 +135,7 @@ def main(waits):
         if state == "done" and done_until and now >= done_until:
             send("x"); done_until = 0.0
         if ser.in_waiting:
-            ser.read(ser.in_waiting)              # throw away the board's "OK" replies
+            ser.read(ser.in_waiting)
         time.sleep(0.03)
 
 
